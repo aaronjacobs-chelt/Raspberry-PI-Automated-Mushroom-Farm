@@ -1,132 +1,132 @@
 import os
 import time
+import json
+import logging
 import RPi.GPIO as GPIO
 from datetime import datetime
 
-#Length of activation time
-turn_on_time = 30
-# Lowest acceptable humidity %
-humidity_threshold = 95
+# === Configuration ===
+SENSOR_FILE = "/opt/zigbee2mqtt/data/state.json"
+HUMIDITY_THRESHOLD = 95.0
+ACTIVATION_TIME = 30
+CYCLE_REBOOT_LIMIT = 30
+STALE_DATA_THRESHOLD = 30  # Number of unchanged reads before forced humidification
+SENSOR_NAMES = ["sensor1", "sensor2"]  # Update as needed
 
+GPIO_PINS = {
+    "OUTLET": 13,
+    "CTRL1": 11,
+    "CTRL2": 15,
+    "CTRL3": 16,
+    "CTRL4": 18,
+    "TRIGGER": 22,
+}
 
-# GPIO port setup 
-GPIO.setmode(GPIO.BOARD)
-GPIO.setwarnings(False)
+# === Logging Setup ===
+logging.basicConfig(
+    filename='/var/log/humidifier.log',
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s:%(message)s'
+)
 
-GPIO.setup(11, GPIO.OUT)
-GPIO.setup(15, GPIO.OUT)
-GPIO.setup(16, GPIO.OUT)
-GPIO.setup(13, GPIO.OUT)
-GPIO.setup(18, GPIO.OUT)
-GPIO.setup(22, GPIO.OUT)
-GPIO.output (22, False)
-GPIO.output (18, False)
-GPIO.output (11, False)
-GPIO.output (15, False)
-GPIO.output (16, False)
-GPIO.output (13, False)
+# === Controller Class ===
+class HumidifierController:
+    def __init__(self):
+        self.reboot_counter = 0
+        self.dry_counter = 0
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setwarnings(False)
+        for pin in GPIO_PINS.values():
+            GPIO.setup(pin, GPIO.OUT)
+            GPIO.output(pin, False)
+        logging.info("GPIO setup complete.")
 
-# Signals the outlet to turn on
-def on():
-    GPIO.output (11, True)
-    GPIO.output (15, True)
-    GPIO.output (16, True)
-    GPIO.output (13, True)
-    time.sleep(0.1)    
-    GPIO.output (22, True)
-    time.sleep(0.25)
-    GPIO.output (22, False)
-
-# Signals the outlet to turn off
-def off():
-    GPIO.output (11, True)
-    GPIO.output (15, True)
-    GPIO.output (16, True)
-    GPIO.output (13, False)
-    time.sleep(0.1)
-    GPIO.output (22, True)
-    time.sleep(0.25)
-    GPIO.output (22, False)
-    time.sleep(0.25)
-
-# in both ^ cases, the sleep times & on/off ports are taken from 
-# retailer: https://energenie4u.co.uk/catalogue/product/ENER002-2PI
-
-
-# Read current values for temperature and humidity
-def check_sensor(num):
-    with open("/opt/zigbee2mqtt/data/state.json") as f:
-        for i, line in enumerate(f):
-            if i == num:
-                # Get only the humidity value from the file
-                hum = line.strip().replace(",","")
-                hum = hum.replace('"humidity": ', "")
-                return float(hum)
-
-
-# Turn outlet on.
-# Then if that does not go through,try again until you get there 
-def turn_on():
-    on()
-    while(GPIO.output(13, False)):
-        on()
-        time.sleep(5)
-
-
-# Turn outlet off.
-# Then if that does not go through, try again until you get there 
-def turn_off():
-    off()
-    while(GPIO.output(13, True)):
-        # Why turn on here? I found that trying to go to the off state 
-        # from a failed off state almost never works. This does.
-        on() 
-        time.sleep(5)
-        off()
-        
-
-    
-def main():
-    try:
-        # Reboot every 30 cycles. I found that without reboots,
-        # the microSDs on RPIs that run a constant program with a lot
-        # of R/W operations go bust and get corrupted for some reason.
-        # feel free to remove the reboot counter and the code associated with it
-        # if your microSDs haven't been cursed like mine
-        reboot_counter, dry_counter = 0, 0
-        while(reboot_counter <= 30):
-            # Read status file for humidity values 
-            hum1 = check_sensor(12)
-            hum2 = check_sensor(18)
-            # If hum too low turn humidifier on for defined period of time thrice in short succession
-            if(hum1 < humidity_threshold or hum2 < humidity_threshold):
-                for i in range(3):
-                    turn_on()
-                    time.sleep(turn_on_time)
-                    turn_off()
-                    time.sleep(60)
-                time.sleep(180)
-            reboot_counter += 1
-            # Wait until new measurments are in
-            while((check_sensor(12) == hum1) and (check_sensor(18) == hum2)):
-                dry_counter +=1
-                # If no new measurements come for an hour, turn on anyway
-                # This way unforeseen technical malfunctions won't result in long dry spells
-                if(dry_counter >= 30):
-                    turn_on()
-                    time.sleep(turn_on_time)
-                    turn_off()
-                    dry_counter = 0
-                time.sleep(120)
-
-    # In case of an error make sure the humidifier is off and reboot
-    # os.system('reboot') works just as well, though this approach avoids
-    # any permission issues
-    finally:
-        turn_off()
+    def cleanup_and_reboot(self):
+        logging.info("Cleaning up GPIO and rebooting system.")
+        self.turn_off()
         GPIO.cleanup()
         os.system("sudo reboot")
 
+    def send_signal(self, pins, delay1=0.1, delay2=0.25):
+        for pin in pins:
+            GPIO.output(pin, True)
+        time.sleep(delay1)
+        GPIO.output(GPIO_PINS["TRIGGER"], True)
+        time.sleep(delay2)
+        GPIO.output(GPIO_PINS["TRIGGER"], False)
 
+    def on(self):
+        self.send_signal([GPIO_PINS["CTRL1"], GPIO_PINS["CTRL2"], GPIO_PINS["CTRL3"], GPIO_PINS["OUTLET"]])
+        logging.info("Humidifier ON signal sent.")
 
-main()
+    def off(self):
+        self.send_signal([GPIO_PINS["CTRL1"], GPIO_PINS["CTRL2"], GPIO_PINS["CTRL3"]], delay1=0.1)
+        GPIO.output(GPIO_PINS["OUTLET"], False)
+        time.sleep(0.25)
+        logging.info("Humidifier OFF signal sent.")
+
+    def turn_on(self):
+        self.on()
+        while GPIO.input(GPIO_PINS["OUTLET"]) is not True:
+            logging.warning("Retrying humidifier ON...")
+            time.sleep(5)
+            self.on()
+
+    def turn_off(self):
+        self.off()
+        while GPIO.input(GPIO_PINS["OUTLET"]) is not False:
+            logging.warning("Retrying humidifier OFF...")
+            self.on()
+            time.sleep(5)
+            self.off()
+
+    def read_humidity(self, sensor):
+        try:
+            with open(SENSOR_FILE) as f:
+                data = json.load(f)
+            humidity = float(data[sensor]["humidity"])
+            return humidity
+        except Exception as e:
+            logging.error(f"Failed to read sensor '{sensor}': {e}")
+            return None
+
+    def run(self):
+        try:
+            while self.reboot_counter <= CYCLE_REBOOT_LIMIT:
+                readings = [self.read_humidity(s) for s in SENSOR_NAMES]
+                if any(h is not None and h < HUMIDITY_THRESHOLD for h in readings):
+                    logging.info(f"Low humidity detected: {readings}")
+                    for _ in range(3):
+                        self.turn_on()
+                        time.sleep(ACTIVATION_TIME)
+                        self.turn_off()
+                        time.sleep(60)
+                    time.sleep(180)
+                else:
+                    logging.info(f"Humidity OK: {readings}")
+                self.reboot_counter += 1
+
+                # Wait for fresh readings
+                prev_readings = readings
+                while True:
+                    time.sleep(120)
+                    new_readings = [self.read_humidity(s) for s in SENSOR_NAMES]
+                    if new_readings != prev_readings:
+                        self.dry_counter = 0
+                        break
+                    self.dry_counter += 1
+                    logging.warning(f"No new sensor data for {self.dry_counter * 2} minutes.")
+                    if self.dry_counter >= STALE_DATA_THRESHOLD:
+                        logging.warning("Stale data threshold reached — activating humidifier as fallback.")
+                        self.turn_on()
+                        time.sleep(ACTIVATION_TIME)
+                        self.turn_off()
+                        self.dry_counter = 0
+                        break
+        finally:
+            self.cleanup_and_reboot()
+
+# === Main ===
+if __name__ == "__main__":
+    controller = HumidifierController()
+    controller.run()

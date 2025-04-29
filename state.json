@@ -1,0 +1,14 @@
+{
+  "sensor1": {
+    "humidity": 86.3,
+    "temperature": 23.3,
+    "battery": 90,
+    "linkquality": 147
+  },
+  "sensor2": {
+    "humidity": 92.8,
+    "temperature": 23.9,
+    "battery": 100,
+    "linkquality": 141
+  }
+}

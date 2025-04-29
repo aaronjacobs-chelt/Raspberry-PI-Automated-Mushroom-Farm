@@ -1,33 +1,127 @@
-# Raspberry-PI-Automated-Mushroom-Farm
- Outlines code &amp; components needed for an automated shotgun fruiting chamber for mushroom cultivation. See the Wiki for component requirements
- 
- ## Setup Instructions
+# 🌫️ Raspberry Pi Automated Mushroom Farm – Humidifier Control
 
-1. Flash the relevant zigbee2mqtt software onto the sniffer stick
-   * https://www.zigbee2mqtt.io/guide/adapters/flashing/flashing_the_cc2531.html
-3. Get zigbee2mqtt running as a service on the PI 
-   * https://www.zigbee2mqtt.io/guide/getting-started/ for the official guide
-   * A very useful guide can also be found at https://flemmingss.com/how-to-set-up-zigbee2mqtt-on-a-raspberry-pi-and-integrate-it-with-home-assistant/ 
-   * If you get an error saying 'Cannot connect to MQTT server!' when trying to run zigbee2mqtt you can simply run 'sudo apt-get install mosquitto' which should fix it.
-3. Plug the sniffer stick and the control component of the Energine remote-controlled sockets into the Raspberry PI
-   * ![image](https://user-images.githubusercontent.com/38185772/170876467-03635355-fdff-4a28-9520-27e27a8f486b.png)
-4. Plug the humidifier into the Energine socket
-   * ![image](https://user-images.githubusercontent.com/38185772/170876691-da3c4ca3-801a-41d6-8c4d-21e215cf7821.png)
-5. Stick the humidity sensors to the walls of the fruiting chamber and move the end of the humidifier hose inside the chamber
-   * ![image](https://user-images.githubusercontent.com/38185772/170876885-0f9b8b4e-6cd1-4f87-aedc-775f2518df09.png)
-   * Growing some barely alive lion's mane in the above picture
-6. Run the code and keep it running via a crontab entry (sudo crontab -e)
-   * I personally use **@reboot sudo python </path/to/the/program>**
+This project automates humidity control using a Raspberry Pi and Zigbee sensors for use in mushroom cultivation. It ensures the air stays sufficiently humid by activating a connected humidifier through an Energenie ENER002-2PI smart plug.
 
-### Troubleshooting
-* Verify that the code is running: ps aux | grep python
-* Verify that zigbee2mqtt is running: sudo service zigbee2mqtt status.
-  * Turn it on: sudo service zigbee2mqtt start
-  * Turn it off: sudo service zigbee2mqtt stop
-  * Restart it: sudo service zigbee2mqtt restart
+---
 
-Get a peak on the stick-to-sensor communication: sudo journalctl -u zigbee2mqtt.service -f
+## 📍 Repository
 
+**GitHub:** [Raspberry-PI-Automated-Mushroom-Farm](https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm.git)
 
+---
 
+## 📦 Project Contents
 
+| File/Folder               | Description |
+|---------------------------|-------------|
+| `humidifier_automation.py` | Main automation script that controls the humidifier based on sensor data. |
+| `simulate_state_json.py`  | Optional script to generate fake sensor data for testing. |
+| `state.json`              | Real-time humidity data, typically updated by Zigbee2MQTT. |
+| `state_json_guide.md`     | Describes the structure and purpose of the `state.json` file. |
+| `README.md`               | This project overview and setup guide. |
+
+---
+
+## 🛠️ Requirements
+
+- **Hardware:**
+  - Raspberry Pi (with GPIO access)
+  - Humidifier controlled via Energenie ENER002-2PI smart plug
+  - One or more Zigbee humidity sensors
+- **Software:**
+  - Python 3
+  - [Zigbee2MQTT](https://www.zigbee2mqtt.io/)
+  - `RPi.GPIO` Python library
+  - Linux (tested on Raspberry Pi OS)
+
+---
+
+## ⚙️ Setup Instructions
+
+### 1. Install Required Packages
+```bash
+sudo apt update
+sudo apt install python3 python3-pip
+pip3 install RPi.GPIO
+```
+
+### 2. Connect GPIO Pins
+Ensure your Energenie ENER002-2PI is wired as per documentation. Default pin mappings:
+- Pins 11, 13, 15, 16, 18, and 22 are used.
+
+### 3. Set Up Zigbee2MQTT
+- Install and configure Zigbee2MQTT to write humidity data to:
+  ```
+  /opt/zigbee2mqtt/data/state.json
+  ```
+- Match sensor names (`sensor1`, `sensor2`) in the script with your actual device IDs.
+
+### 4. Test the System
+Run the automation script:
+```bash
+sudo python3 humidifier_automation.py
+```
+
+---
+
+## 🧪 Testing Without Sensors
+
+Use the simulator to generate fake sensor data:
+```bash
+python3 simulate_state_json.py
+```
+This will update `state.json` every 60 seconds with realistic values, so you can safely test the system logic.
+
+---
+
+## 🔄 Auto-Start on Boot (Optional)
+
+Create a systemd service to run the automation on startup:
+
+```bash
+sudo nano /etc/systemd/system/humidifier.service
+```
+
+Paste:
+```ini
+[Unit]
+Description=Humidifier Automation
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/humidifier_automation.py
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then enable the service:
+```bash
+sudo systemctl daemon-reexec
+sudo systemctl enable humidifier.service
+sudo systemctl start humidifier.service
+```
+
+---
+
+## 🧠 Tips & Considerations
+
+- Rebooting every 30 cycles is a precaution for SD card health. Adjust or disable as needed.
+- Use proper casing or waterproofing if deploying in humid environments.
+- Logging is written to `/var/log/humidifier.log` (can be changed in the script).
+
+---
+
+## 🐛 Troubleshooting
+
+- **GPIO errors**: Check pin permissions or run the script with `sudo`.
+- **JSON errors**: Ensure `state.json` is valid and not manually edited while in use.
+- **No output from sensors**: Check Zigbee2MQTT logs and device connectivity.
+
+---
+
+## 📜 License
+
+MIT License – Use and modify freely.
