@@ -1,0 +1,12 @@
+/var/log/mycomonitor/*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 pi pi
+    postrotate
+        systemctl reload mycomonitor.service >/dev/null 2>&1 || true
+    endscript
+}

@@ -1,1 +1,4 @@
 RPi.GPIO>=0.7.0
+click>=8.0.0
+Flask>=2.0.0
+requests>=2.25.0

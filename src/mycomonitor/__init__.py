@@ -1,9 +1,24 @@
 """MycoMonitor - Automated mushroom cultivation environment controller."""
 
-__version__ = "1.0.0"
-__author__ = "Aaron Jacobs"
-__email__ = "git@happycaps.co.uk"
+from importlib.metadata import version, PackageNotFoundError
+from typing import Optional
+
+try:
+    __version__ = version("mycomonitor")
+except PackageNotFoundError:
+    __version__ = "unknown"
 
 from .core.controller import HumidifierController
+from .utils.config import SystemConfig, load_config
+from .safety.monitor import SafetyMonitor, SafetyThresholds
+from .metrics.collector import MetricsCollector, SystemMetrics
 
-__all__ = ["HumidifierController"]
+__all__ = [
+    "HumidifierController",
+    "SystemConfig",
+    "load_config",
+    "SafetyMonitor",
+    "SafetyThresholds",
+    "MetricsCollector",
+    "SystemMetrics",
+]

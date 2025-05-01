@@ -1,4 +1,4 @@
-"""Core functionality for the MycoMonitor system."""
+"""Core functionality for MycoMonitor."""
 
 from .controller import HumidifierController
 

@@ -7,6 +7,9 @@ setup(
     package_dir={"": "src"},
     install_requires=[
         "RPi.GPIO>=0.7.0",
+        "click>=8.0.0",
+        "Flask>=2.0.0",
+        "requests>=2.25.0",
     ],
     extras_require={
         "dev": [
@@ -17,6 +20,12 @@ setup(
             "isort>=5.10.1",
             "mypy>=1.0.0",
             "flake8>=4.0.1",
+        ],
+    },
+    entry_points={
+        'console_scripts': [
+            'mycomonitor=mycomonitor.cli.commands:cli',
+            'mycomonitor-web=mycomonitor.web.app:create_app',
         ],
     },
     python_requires=">=3.9",
@@ -38,10 +47,3 @@ setup(
         "Topic :: Home Automation",
     ],
 )
-
-entry_points={
-    'console_scripts': [
-        'mycomonitor=mycomonitor.cli.commands:cli',
-        'mycomonitor-web=mycomonitor.web.app:create_app',
-    ],
-},

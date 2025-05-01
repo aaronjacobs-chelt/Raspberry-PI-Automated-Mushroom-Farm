@@ -1,0 +1,27 @@
+[Unit]
+Description=MycoMonitor Mushroom Growing Environment Controller
+After=network.target zigbee2mqtt.service
+Wants=zigbee2mqtt.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/mycomonitor
+Environment=PYTHONPATH=/opt/mycomonitor
+ExecStart=/usr/local/bin/mycomonitor start
+Restart=always
+RestartSec=10
+
+# Safety limits
+LimitNOFILE=4096
+MemoryLimit=256M
+
+# Security
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

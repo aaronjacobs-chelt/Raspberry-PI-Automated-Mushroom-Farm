@@ -1,0 +1,50 @@
+# MycoMonitor Deployment Configuration
+
+paths:
+  install: /opt/mycomonitor
+  config: /etc/mycomonitor
+  data: /var/lib/mycomonitor
+  logs: /var/log/mycomonitor
+  backups: /var/backups/mycomonitor
+
+user:
+  name: pi
+  group: pi
+
+services:
+  main:
+    type: systemd
+    name: mycomonitor
+    enabled: true
+    restart: always
+  web:
+    type: systemd
+    name: mycomonitor-web
+    enabled: true
+    port: 8080
+
+monitoring:
+  log_level: INFO
+  metrics_retention: 90
+  backup_retention: 30
+
+security:
+  updates: automatic
+  ssl: true
+  firewall: true
+  fail2ban: true
+
+dependencies:
+  system:
+    - python3
+    - python3-pip
+    - python3-venv
+    - git
+  python:
+    - -r requirements.txt
+
+backup:
+  schedule: daily
+  type: local
+  compress: true
+  validate: true

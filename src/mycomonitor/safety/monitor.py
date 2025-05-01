@@ -3,9 +3,9 @@
 import logging
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 
-from ..utils.config import load_config
+from ..utils.config import SystemConfig, load_config
 
 @dataclass
 class SafetyThresholds:
@@ -21,22 +21,38 @@ class SafetyThresholds:
 class SafetyMonitor:
     """Monitors system safety and triggers emergency procedures when needed."""
     
-    def __init__(self, config_path: Optional[str] = None):
-        self.config = load_config(config_path)
-        self.thresholds = SafetyThresholds(
-            max_humidity=self.config.get("safety", {}).get("max_humidity", 98.0),
-            min_humidity=self.config.get("safety", {}).get("min_humidity", 40.0),
-            max_temperature=self.config.get("safety", {}).get("max_temperature", 30.0),
-            min_temperature=self.config.get("safety", {}).get("min_temperature", 10.0),
-            max_runtime=self.config.get("safety", {}).get("max_runtime", 300),
-            min_cycle_interval=self.config.get("safety", {}).get("min_cycle_interval", 60),
-            stale_data_timeout=self.config.get("safety", {}).get("stale_data_timeout", 300)
-        )
+    def __init__(self, config: Optional[SystemConfig] = None) -> None:
+        """
+        Initialize safety monitor.
+        
+        Args:
+            config: Optional system configuration
+        """
+        self.config = config or load_config()
+        self.thresholds = self._load_thresholds()
         self.last_check_time: float = time.time()
         self.last_activation_time: float = 0
         self.current_runtime: float = 0
         self.emergency_mode: bool = False
         self._setup_logging()
+
+    def _load_thresholds(self) -> SafetyThresholds:
+        """
+        Load safety thresholds from configuration.
+        
+        Returns:
+            SafetyThresholds object
+        """
+        safety_config = getattr(self.config, 'safety', {})
+        return SafetyThresholds(
+            max_humidity=safety_config.get('max_humidity', 98.0),
+            min_humidity=safety_config.get('min_humidity', 40.0),
+            max_temperature=safety_config.get('max_temperature', 30.0),
+            min_temperature=safety_config.get('min_temperature', 10.0),
+            max_runtime=safety_config.get('max_runtime', 300),
+            min_cycle_interval=safety_config.get('min_cycle_interval', 60),
+            stale_data_timeout=safety_config.get('stale_data_timeout', 300)
+        )
 
     def _setup_logging(self) -> None:
         """Set up safety-specific logging."""
@@ -44,7 +60,8 @@ class SafetyMonitor:
         self.logger.setLevel(logging.INFO)
 
     def check_sensor_readings(
-        self, readings: Dict[str, Dict[str, float]]
+        self,
+        readings: Dict[str, Dict[str, float]]
     ) -> Tuple[bool, List[str]]:
         """
         Check if sensor readings are within safe ranges.
@@ -55,11 +72,10 @@ class SafetyMonitor:
         Returns:
             Tuple of (is_safe, list of warnings)
         """
-        warnings = []
+        warnings: List[str] = []
         is_safe = True
 
         for sensor_id, data in readings.items():
-            # Check humidity
             if "humidity" in data:
                 humidity = data["humidity"]
                 if humidity > self.thresholds.max_humidity:
@@ -68,7 +84,6 @@ class SafetyMonitor:
                 elif humidity < self.thresholds.min_humidity:
                     warnings.append(f"Humidity too low: {humidity}% on {sensor_id}")
 
-            # Check temperature if available
             if "temperature" in data:
                 temp = data["temperature"]
                 if temp > self.thresholds.max_temperature:
@@ -80,8 +95,16 @@ class SafetyMonitor:
         return is_safe, warnings
 
     def check_runtime(self, active: bool) -> Tuple[bool, List[str]]:
-        """Check if runtime is within safe limits."""
-        warnings = []
+        """
+        Check if runtime is within safe limits.
+        
+        Args:
+            active: Whether the system is currently active
+            
+        Returns:
+            Tuple of (is_safe, list of warnings)
+        """
+        warnings: List[str] = []
         is_safe = True
         current_time = time.time()
 
@@ -99,8 +122,13 @@ class SafetyMonitor:
         return is_safe, warnings
 
     def check_cycle_interval(self) -> Tuple[bool, List[str]]:
-        """Check if cycle interval is safe."""
-        warnings = []
+        """
+        Check if cycle interval is safe.
+        
+        Returns:
+            Tuple of (is_safe, list of warnings)
+        """
+        warnings: List[str] = []
         is_safe = True
         current_time = time.time()
 
@@ -111,8 +139,16 @@ class SafetyMonitor:
         return is_safe, warnings
 
     def check_data_freshness(self, last_update_time: float) -> Tuple[bool, List[str]]:
-        """Check if sensor data is fresh enough."""
-        warnings = []
+        """
+        Check if sensor data is fresh enough.
+        
+        Args:
+            last_update_time: Timestamp of last data update
+            
+        Returns:
+            Tuple of (is_safe, list of warnings)
+        """
+        warnings: List[str] = []
         is_safe = True
         current_time = time.time()
 
@@ -132,12 +168,10 @@ class SafetyMonitor:
         if not self.emergency_mode:
             self.emergency_mode = True
             self.logger.critical(f"EMERGENCY SHUTDOWN: {reason}")
-            # Implement shutdown logic here
-            # This should be implemented by the main controller
+            # Implementation should be provided by main controller
 
     def reset_emergency_mode(self) -> None:
         """Reset emergency mode after safety checks pass."""
         if self.emergency_mode:
             self.emergency_mode = False
             self.logger.info("Emergency mode reset - system returning to normal operation")
-

@@ -1,11 +1,11 @@
 """Metrics collection and monitoring for MycoMonitor."""
 
-import time
-from typing import Dict, List, Optional
-from dataclasses import dataclass
 import json
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
 
 @dataclass
 class SystemMetrics:
@@ -21,14 +21,20 @@ class SystemMetrics:
 class MetricsCollector:
     """Collects and manages system metrics."""
 
-    def __init__(self, storage_path: str = "/var/log/mycomonitor/metrics"):
-        self.storage_path = storage_path
+    def __init__(self, storage_path: str = "/var/log/mycomonitor/metrics") -> None:
+        """
+        Initialize metrics collector.
+        
+        Args:
+            storage_path: Path to store metrics data
+        """
+        self.storage_path = Path(storage_path)
         self.current_metrics: Optional[SystemMetrics] = None
         self.initialize_storage()
 
     def initialize_storage(self) -> None:
         """Initialize metrics storage directory."""
-        os.makedirs(self.storage_path, exist_ok=True)
+        self.storage_path.mkdir(parents=True, exist_ok=True)
 
     def collect_metrics(
         self,
@@ -51,13 +57,13 @@ class MetricsCollector:
             errors: List of current errors
         """
         self.current_metrics = SystemMetrics(
-            timestamp=time.time(),
-            humidity_readings=humidity_data,
-            temperature_readings=temperature_data,
+            timestamp=datetime.now().timestamp(),
+            humidity_readings=humidity_data.copy(),
+            temperature_readings=temperature_data.copy(),
             humidifier_state=humidifier_state,
             runtime=runtime,
             cycle_count=cycle_count,
-            errors=errors
+            errors=errors.copy()
         )
         self._store_metrics()
 
@@ -66,30 +72,14 @@ class MetricsCollector:
         if not self.current_metrics:
             return
 
-        # Create timestamp-based filename
         timestamp = datetime.fromtimestamp(self.current_metrics.timestamp)
-        date_dir = os.path.join(
-            self.storage_path,
-            timestamp.strftime("%Y-%m")
-        )
-        os.makedirs(date_dir, exist_ok=True)
+        date_dir = self.storage_path / timestamp.strftime("%Y-%m")
+        date_dir.mkdir(exist_ok=True)
         
-        filename = os.path.join(
-            date_dir,
-            f"metrics_{timestamp.strftime('%Y%m%d_%H%M%S')}.json"
-        )
+        filename = date_dir / f"metrics_{timestamp.strftime('%Y%m%d_%H%M%S')}.json"
 
-        # Store metrics
-        with open(filename, 'w') as f:
-            json.dump({
-                "timestamp": self.current_metrics.timestamp,
-                "humidity_readings": self.current_metrics.humidity_readings,
-                "temperature_readings": self.current_metrics.temperature_readings,
-                "humidifier_state": self.current_metrics.humidifier_state,
-                "runtime": self.current_metrics.runtime,
-                "cycle_count": self.current_metrics.cycle_count,
-                "errors": self.current_metrics.errors
-            }, f)
+        with filename.open('w') as f:
+            json.dump(vars(self.current_metrics), f, indent=4)
 
     def get_metrics_range(
         self,
@@ -106,27 +96,22 @@ class MetricsCollector:
         Returns:
             List of SystemMetrics objects
         """
-        metrics = []
+        metrics: List[SystemMetrics] = []
         current = start_time
 
         while current <= end_time:
-            date_dir = os.path.join(
-                self.storage_path,
-                current.strftime("%Y-%m")
-            )
+            date_dir = self.storage_path / current.strftime("%Y-%m")
             
-            if os.path.exists(date_dir):
-                for filename in os.listdir(date_dir):
-                    if not filename.endswith('.json'):
+            if date_dir.exists():
+                for filepath in date_dir.glob("*.json"):
+                    if not filepath.name.endswith('.json'):
                         continue
                         
-                    filepath = os.path.join(date_dir, filename)
-                    with open(filepath, 'r') as f:
+                    with filepath.open('r') as f:
                         data = json.load(f)
-                        
-                    metric_time = datetime.fromtimestamp(data["timestamp"])
-                    if start_time <= metric_time <= end_time:
-                        metrics.append(SystemMetrics(**data))
+                        metric_time = datetime.fromtimestamp(data["timestamp"])
+                        if start_time <= metric_time <= end_time:
+                            metrics.append(SystemMetrics(**data))
 
             current += timedelta(days=1)
 
@@ -144,7 +129,7 @@ class MetricsCollector:
     def calculate_statistics(
         self,
         metrics: List[SystemMetrics]
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """
         Calculate statistics from a list of metrics.
         
@@ -157,9 +142,9 @@ class MetricsCollector:
         if not metrics:
             return {}
 
-        humidity_values = []
-        temperature_values = []
-        runtime_values = []
+        humidity_values: List[float] = []
+        temperature_values: List[float] = []
+        runtime_values: List[float] = []
         total_cycles = 0
         total_errors = 0
 
@@ -188,4 +173,3 @@ class MetricsCollector:
             "cycles": total_cycles,
             "errors": total_errors
         }
-
