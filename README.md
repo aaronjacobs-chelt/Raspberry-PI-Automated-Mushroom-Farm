@@ -1,95 +1,116 @@
-# 🌫️ Raspberry Pi Automated Mushroom Farm – Humidifier Control
+# 🌫️ Raspberry Pi Automated Mushroom Farm
 
-This project automates humidity control using a Raspberry Pi and Zigbee sensors for use in mushroom cultivation. It ensures the air stays sufficiently humid by activating a connected humidifier through an Energenie ENER002-2PI smart plug.
+[![Project Status: Active](https://img.shields.io/badge/Project%20Status-Active-green.svg)](https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm)
 
----
+> **Acknowledgment**: This project was inspired by the original MycoMonitor project. While the original project is no longer maintained, it provided the foundational concepts and ideas for this implementation. We're grateful for their pioneering work in automated mushroom cultivation.
 
-## 📍 Repository
+## 📖 Overview
 
-**GitHub:** [Raspberry-PI-Automated-Mushroom-Farm](https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm.git)
+The Raspberry Pi Automated Mushroom Farm is a complete system for automating humidity control in mushroom cultivation environments. It uses a Raspberry Pi to monitor humidity levels via Zigbee sensors and automatically activates a humidifier (connected through an Energenie smart plug) when humidity falls below your specified threshold.
 
----
+### ✨ Key Features
 
-## 📦 Project Contents
+- **Automated Humidity Control**: Maintains optimal growing conditions (80-95% humidity) without constant monitoring
+- **Multi-Sensor Support**: Works with multiple Zigbee humidity sensors for accurate environmental readings
+- **Smart Plug Integration**: Controls standard humidifiers through affordable Energenie ENER002-2PI smart plugs
+- **Test Mode**: Includes a simulation script for testing without physical hardware
+- **Auto-Start Capability**: Can be configured as a system service that runs automatically on boot
+- **Comprehensive Logging**: Detailed logging for monitoring system performance and troubleshooting
 
-| File/Folder               | Description |
-|---------------------------|-------------|
-| `humidifier_automation.py` | Main automation script that controls the humidifier based on sensor data. |
-| `simulate_state_json.py`  | Optional script to generate fake sensor data for testing. |
-| `state.json`              | Real-time humidity data, typically updated by Zigbee2MQTT. |
-| `state_json_guide.md`     | Describes the structure and purpose of the `state.json` file. |
-| `README.md`               | This project overview and setup guide. |
+### 🔌 Technology Stack
 
----
+- **Hardware**: Raspberry Pi, Zigbee sensors, Energenie ENER002-2PI smart plug
+- **Software**: Python, RPi.GPIO, Zigbee2MQTT
+- **Communication**: GPIO pins for smart plug control, Zigbee for wireless sensor data
 
-## 🛠️ Requirements
+## ⚡ Quick Start
 
-- **Hardware:**
-  - Raspberry Pi (with GPIO access)
-  - Humidifier controlled via Energenie ENER002-2PI smart plug
-  - One or more Zigbee humidity sensors
-- **Software:**
-  - Python 3
-  - [Zigbee2MQTT](https://www.zigbee2mqtt.io/)
-  - `RPi.GPIO` Python library
-  - Linux (tested on Raspberry Pi OS)
+### Prerequisites
 
----
+- Raspberry Pi (any model with GPIO access)
+- Energenie ENER002-2PI smart plug
+- One or more Zigbee humidity sensors
+- Zigbee coordinator/hub
+- Python 3.6+
 
-## ⚙️ Setup Instructions
+### Basic Setup
 
-### 1. Install Required Packages
 ```bash
-sudo apt update
-sudo apt install python3 python3-pip
+# Clone repository
+git clone https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm.git
+cd Raspberry-PI-Automated-Mushroom-Farm
+
+# Install dependencies
+sudo apt update && sudo apt install python3 python3-pip
 pip3 install RPi.GPIO
-```
 
-### 2. Connect GPIO Pins
-Ensure your Energenie ENER002-2PI is wired as per documentation. Default pin mappings:
-- Pins 11, 13, 15, 16, 18, and 22 are used.
-
-### 3. Set Up Zigbee2MQTT
-- Install and configure Zigbee2MQTT to write humidity data to:
-  ```
-  /opt/zigbee2mqtt/data/state.json
-  ```
-- Match sensor names (`sensor1`, `sensor2`) in the script with your actual device IDs.
-
-### 4. Test the System
-Run the automation script:
-```bash
+# Run the automation script
 sudo python3 humidifier_automation.py
 ```
 
----
+For detailed setup instructions, see the [Configuration Guide](docs/Configuration_Guide.md).
 
-## 🧪 Testing Without Sensors
+## 📚 Documentation
 
-Use the simulator to generate fake sensor data:
+This project includes comprehensive documentation to help you get started and make the most of your automated mushroom farm:
+
+| Document | Description |
+|----------|-------------|
+| [Configuration Guide](docs/Configuration_Guide.md) | Detailed configuration of sensors, state.json format, and script settings |
+| [Troubleshooting Guide](docs/Troubleshooting.md) | Common issues and solutions for system problems |
+| [Development Guide](docs/Development.md) | Information for contributors and developers |
+| [docs/images/](docs/images/) | Diagrams and visual references |
+
+## 🛠️ Installation
+
+> **Tip**: Before beginning installation, we recommend reviewing the [System Architecture Diagram](docs/images/system_architecture.md) and [GPIO Connection Diagram](docs/images/gpio_connections.md) for a visual understanding of how all components fit together.
+
+### 1. Hardware Setup
+
+Connect your Energenie ENER002-2PI smart plug to the Raspberry Pi GPIO pins:
+
+| Energenie Wire | Raspberry Pi GPIO Pin |
+|----------------|----------------------|
+| Red            | Pin 11 (CTRL1)       |
+| Black          | Pin 13 (OUTLET)      |
+| White          | Pin 15 (CTRL2)       |
+| Green          | Pin 16 (CTRL3)       |
+| Yellow         | Pin 18 (CTRL4)       |
+| Blue           | Pin 22 (TRIGGER)     |
+
+### 2. Software Installation
+
 ```bash
-python3 simulate_state_json.py
+# Install required packages
+sudo apt update
+sudo apt install python3 python3-pip git
+pip3 install RPi.GPIO
+
+# Clone and set up the repository
+git clone https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm.git
+cd Raspberry-PI-Automated-Mushroom-Farm
 ```
-This will update `state.json` every 60 seconds with realistic values, so you can safely test the system logic.
 
----
+### 3. Set Up Zigbee2MQTT
 
-## 🔄 Auto-Start on Boot (Optional)
+Ensure Zigbee2MQTT is configured to write sensor data to a `state.json` file. For detailed instructions, see the [Configuration Guide](docs/Configuration_Guide.md).
 
-Create a systemd service to run the automation on startup:
+### 4. Auto-Start Configuration (Optional)
+
+Set up as a systemd service to run on boot:
 
 ```bash
 sudo nano /etc/systemd/system/humidifier.service
 ```
 
-Paste:
 ```ini
 [Unit]
-Description=Humidifier Automation
+Description=Mushroom Farm Humidity Automation
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/humidifier_automation.py
+ExecStart=/usr/bin/python3 /home/pi/Raspberry-PI-Automated-Mushroom-Farm/humidifier_automation.py
+WorkingDirectory=/home/pi/Raspberry-PI-Automated-Mushroom-Farm
 Restart=always
 User=pi
 
@@ -97,31 +118,83 @@ User=pi
 WantedBy=multi-user.target
 ```
 
-Then enable the service:
+Enable and start the service:
 ```bash
-sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
 sudo systemctl enable humidifier.service
 sudo systemctl start humidifier.service
 ```
 
----
+## 💻 Usage
 
-## 🧠 Tips & Considerations
+### Basic Operation
 
-- Rebooting every 30 cycles is a precaution for SD card health. Adjust or disable as needed.
-- Use proper casing or waterproofing if deploying in humid environments.
-- Logging is written to `/var/log/humidifier.log` (can be changed in the script).
+Once installed and configured, the system will:
 
----
+1. Read humidity data from your Zigbee sensors via the `state.json` file
+2. Compare current humidity levels against your configured threshold (default: 95%)
+3. Activate the humidifier when humidity falls below the threshold
+4. Deactivate the humidifier when humidity reaches satisfactory levels
+5. Log all activities to `/var/log/humidifier.log`
 
-## 🐛 Troubleshooting
+### Testing Mode
 
-- **GPIO errors**: Check pin permissions or run the script with `sudo`.
-- **JSON errors**: Ensure `state.json` is valid and not manually edited while in use.
-- **No output from sensors**: Check Zigbee2MQTT logs and device connectivity.
+For testing without physical sensors:
 
----
+```bash
+python3 simulate_state_json.py
+```
+
+This will generate simulated sensor data, allowing you to test the system's logic without actual hardware.
+
+### Monitoring
+
+Check the log file for system activity:
+
+```bash
+cat /var/log/humidifier.log
+```
+
+## ⚙️ Configuration
+
+The main configuration options are found in `humidifier_automation.py`:
+
+```python
+# User configurable settings
+HUMIDITY_THRESHOLD = 95.0  # Activate humidifier when humidity falls below this value
+SENSOR_NAMES = ["sensor1", "sensor2"]  # Names of your Zigbee sensors in state.json
+STATE_FILE_PATH = "/opt/zigbee2mqtt/data/state.json"  # Path to your state.json file
+LOG_FILE = "/var/log/humidifier.log"  # Path for log file
+REBOOT_AFTER_CYCLES = 30  # Reboot after this many cycles (set to 0 to disable)
+```
+
+For detailed configuration information, see the [Configuration Guide](docs/Configuration_Guide.md).
+
+## 🤝 Contributing
+
+We welcome contributions to improve this project! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Commit with clear messages (`git commit -m 'Add feature: description'`)
+5. Push to your branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+See the [Development Guide](docs/Development.md) for coding standards and development workflow details.
 
 ## 📜 License
 
 MIT License – Use and modify freely.
+
+---
+
+<div align="center">
+  <p>
+    <em>Made with ❤️ for mushroom growers everywhere</em>
+  </p>
+  <p>
+    <a href="https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm/issues">Report Bug</a> •
+    <a href="https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm/issues">Request Feature</a>
+  </p>
+</div>
