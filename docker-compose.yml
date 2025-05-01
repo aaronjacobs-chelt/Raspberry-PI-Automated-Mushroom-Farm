@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  dev:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - READTHEDOCS=True  # For fake-rpi
+    command: /bin/bash
+    tty: true
+    stdin_open: true
+
+  test:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - READTHEDOCS=True
+    command: pytest
+
+  lint:
+    build: .
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+    command: sh -c "black . && isort . && flake8 ."

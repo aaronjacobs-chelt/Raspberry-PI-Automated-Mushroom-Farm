@@ -1,0 +1,30 @@
+{
+    "humidity_threshold": 95.0,
+    "activation_time": 30,
+    "cycle_reboot_limit": 30,
+    "stale_data_threshold": 30,
+    "sensor_names": ["sensor1", "sensor2"],
+    "gpio_pins": {
+        "OUTLET": 13,
+        "CTRL1": 11,
+        "CTRL2": 15,
+        "CTRL3": 16,
+        "CTRL4": 18,
+        "TRIGGER": 22
+    },
+    "logging": {
+        "file": "/var/log/mycomonitor.log",
+        "level": "INFO",
+        "format": "%(asctime)s %(levelname)s:%(message)s"
+    },
+    "data": {
+        "state_file": "/opt/mycomonitor/state.json",
+        "backup_enabled": true,
+        "backup_interval": 3600
+    },
+    "safety": {
+        "max_continuous_runtime": 300,
+        "min_cycle_interval": 60,
+        "emergency_shutdown_humidity": 98.0
+    }
+}

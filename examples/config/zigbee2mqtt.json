@@ -1,0 +1,24 @@
+{
+    "mqtt": {
+        "base_topic": "zigbee2mqtt",
+        "server": "mqtt://localhost:1883"
+    },
+    "serial": {
+        "port": "/dev/ttyACM0"
+    },
+    "devices": {
+        "sensor1": {
+            "friendly_name": "Growing Area Main",
+            "retain": true
+        },
+        "sensor2": {
+            "friendly_name": "Growing Area Secondary",
+            "retain": true
+        }
+    },
+    "advanced": {
+        "log_level": "info",
+        "log_output": ["console", "file"],
+        "network_key": "GENERATE"
+    }
+}
