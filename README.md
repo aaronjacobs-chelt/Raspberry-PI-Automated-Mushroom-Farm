@@ -1,8 +1,8 @@
-# 🌫️ Raspberry Pi Automated Mushroom Farm
+# 🌫️ MycoMonitor (previously Raspberry Pi Automated Mushroom Farm)
 
 [![Project Status: Active](https://img.shields.io/badge/Project%20Status-Active-green.svg)](https://github.com/aaronjacobs-chelt/Raspberry-PI-Automated-Mushroom-Farm)
 
-> **Acknowledgment**: This project was inspired by the original MycoMonitor project. While the original project is no longer maintained, it provided the foundational concepts and ideas for this implementation. We're grateful for their pioneering work in automated mushroom cultivation.
+> **Acknowledgment**: This project was inspired by the original Raspberry Pi Automated Mushroom Farm project. While the original project is no longer maintained, it provided the foundational concepts and ideas for this implementation. We're grateful for their pioneering work in automated mushroom cultivation.
 
 ## 📖 Overview
 
